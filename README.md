@@ -8,6 +8,8 @@
 
 When payments fail in a company, the current workflow looks like this:
 
+BA - Business Analyst
+
 1. Client reports payment failures to the Business Analyst
 2. BA creates a vague Jira ticket based on their limited understanding
 3. Developer opens the ticket, has no technical context
