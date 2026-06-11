@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://paysentinel-production-6808.up.railway.app/api/:path*"
+    }
+  ]
+}
