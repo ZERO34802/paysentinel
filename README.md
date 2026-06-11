@@ -1,8 +1,13 @@
 # PaySentinel — Autonomous Payment Failure Investigation Agent
 
-> Google Cloud Rapid Agent Hackathon · Elastic Partner Track · Financial Services
+> Google Cloud Rapid Agent Hackathon · **Elastic Partner Track** · Financial Services
 
-**From payment failure report to diagnosed Jira ticket in 90 seconds.**
+**From a plain-English payment-failure report to a diagnosed Jira ticket — in seconds, not 30+ minutes.**
+
+- **Live demo:** https://paysentinel-dusky.vercel.app/
+- **Built with:** Gemini · Google Cloud Agent Builder · **Elastic MCP (ES|QL)** · Jira
+
+PaySentinel is a multi-step agent built in **Google Cloud Agent Builder**, powered by **Gemini**, that uses **Elastic's MCP server** as its core "superpower" — it runs **ES|QL** queries against live payment telemetry to gather the exact evidence it needs, reasons over it, and files a developer-ready Jira ticket. It doesn't just answer questions; it plans, investigates, and takes action.
 
 ## The Problem
 
@@ -27,9 +32,34 @@ New workflow:
 
 1. Client reports issue to BA
 2. BA opens PaySentinel, describes the issue with optional context
-3. Agent investigates autonomously (90 seconds)
+3. Agent investigates autonomously (seconds)
 4. Developer opens Jira ticket — root cause already identified
 5. Developer goes straight to fixing
+
+## Partner Integration — Elastic MCP (ES|QL)
+
+Elastic is the agent's investigative superpower. Rather than running hardcoded queries, the agent:
+
+1. **Lets Gemini decide what to look for** — the planning step produces filters (payment method, region, time window, failure stage) and hypotheses.
+2. **Calls the Elastic MCP server** (`platform_core_execute_esql`) over JSON-RPC 2.0, with a **dynamically built ES|QL query** assembled from Gemini's plan.
+3. **Retrieves exactly the evidence the plan asked for**, then compares it against a 7-day baseline.
+4. **Falls back to the direct Elasticsearch client** only if MCP returns insufficient data, so the agent is resilient.
+
+Example ES|QL the agent generates for "UPI failing in Mumbai":
+
+```sql
+FROM transactions
+| WHERE status == "failed"
+| WHERE timestamp >= NOW() - 2 hours
+| WHERE payment_method == "UPI"
+| WHERE ip_region == "Mumbai"
+| KEEP transaction_id, timestamp, payment_method, gateway, bank, error_code,
+       failure_stage, response_time_ms, retry_count, merchant_id, user_device, ip_region
+| SORT timestamp DESC
+| LIMIT 10000
+```
+
+Elasticsearch also serves as the agent's **long-term memory**: every diagnosis is written back as a searchable incident record (step 7).
 
 ## How the Agent Works (7 Steps)
 
@@ -202,24 +232,28 @@ _Created automatically by PaySentinel_
 
 ## Architecture Diagram
 
+There are two ways to reach the agent. The **Google Cloud Agent Builder** agent is the autonomous orchestrator (it decides to call the investigation tool); the React web UI is a polished alternative entry point. Both trigger the same multi-step agent pipeline.
+
 ```
-BA describes issue in plain English
-           ↓
-    React Frontend (localhost:5173)
-           ↓
-    Node/Express Backend (:3001)
-           ↓
-  ┌────────────────────────┐
-  │  Google Cloud Agent    │
-  │  Builder (CX Studio)   │
-  └────────────────────────┘
-        ↓           ↓
-  Elastic MCP    Gemini API
-  (ES|QL search) (plan+diagnose)
-        ↓           ↓
-  Elasticsearch  Jira REST API
-  (logs+memory)  (create ticket)
+   Google Cloud Agent Builder agent          React web UI (Vercel)
+   (Gemini decides to call the tool)          live step-by-step trace
+                  │                                     │
+                  └──────────────┬──────────────────────┘
+                                 ▼
+                Node/Express backend  ·  /api/investigate
+                (Railway)  — the multi-step agent pipeline
+                                 │
+        ┌───────────────┬────────┴────────┬──────────────────┐
+        ▼               ▼                 ▼                  ▼
+  Gemini (plan)   Elastic MCP        Gemini (diagnose)   Jira REST API
+                  ES|QL search                            (create ticket)
+                        │
+                        ▼
+                 Elasticsearch
+            (transaction logs + incident memory)
 ```
+
+**Deployment:** frontend on **Vercel** (`/api/*` proxied to the backend), backend on **Railway**, data + memory in **Elastic Cloud**.
 
 ## What Makes This an Agent (Not a Chatbot)
 
