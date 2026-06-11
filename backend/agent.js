@@ -23,7 +23,8 @@ function getGeminiModel() {
     throw new Error('GEMINI_API_KEY must be configured');
   }
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  return genAI.getGenerativeModel({ model: modelName });
 }
 
 function parseJsonResponse(text) {
@@ -435,7 +436,8 @@ export async function runInvestigation(userQuery, baContext = {}, onStepComplete
     let plan;
     try {
       plan = await generateInvestigationPlan(userQuery, baContext);
-    } catch {
+    } catch (err) {
+      console.error('Gemini planning failed, using fallback plan:', err.message);
       plan = fallbackInvestigationPlan(baContext);
     }
     results.investigationPlan = plan;
@@ -519,7 +521,8 @@ export async function runInvestigation(userQuery, baContext = {}, onStepComplete
         baContext,
         results.investigationPlan
       );
-    } catch {
+    } catch (err) {
+      console.error('Gemini diagnosis failed, using fallback diagnosis:', err.message);
       diagnosis = fallbackDiagnosis(results.analysis, results.investigationPlan);
     }
     results.diagnosis = diagnosis;
