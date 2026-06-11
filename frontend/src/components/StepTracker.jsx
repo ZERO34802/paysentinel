@@ -340,8 +340,8 @@ function formatStepDetail(step) {
       return `${data.hypotheses?.length ?? 0} hypotheses · ${data.time_window_hours ?? data.filters?.time_window_hours ?? 1}h window`;
     case 'elastic_mcp_search':
       return data.count != null
-        ? `${data.count} failed transactions via Elastic MCP${data.timeRange ? ` · ${data.timeRange}` : ''}`
-        : 'Elastic MCP did not return enough evidence';
+        ? `ES|QL via Elastic MCP → ${data.count} failed transactions${data.timeRange ? ` · ${data.timeRange}` : ''}`
+        : 'Elastic MCP (ES|QL) returned no evidence';
     case 'elastic_search':
       if (data.source === 'elastic_mcp') return `${data.count} failures reused from Elastic MCP`;
       if (data.fallback_from_mcp) return `${data.count} failures via direct Elasticsearch fallback`;

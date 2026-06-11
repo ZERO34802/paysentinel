@@ -199,18 +199,18 @@ export default function App() {
 
           <section className="architecture-card panel-glass">
             <div>
-              <span className="section-kicker">What judges should notice</span>
-              <h2>This is an agent, not a chatbot.</h2>
+              <span className="section-kicker">Powered by Elastic MCP</span>
+              <h2>Evidence retrieved via ES|QL.</h2>
               <p>
-                Each run shows a real multi-step mission: plan hypotheses, search logs,
-                compare baseline anomalies, create Jira, and write incident memory back
-                to Elasticsearch.
+                The agent queries Elastic&apos;s MCP server with ES|QL to pull the exact
+                failed-transaction evidence its plan asked for, compares it against the
+                7-day baseline, then reasons over the results to reach a diagnosis.
               </p>
             </div>
             <div className="flow-map" aria-label="Agent workflow">
               <span>BA report</span>
               <span>Gemini plan</span>
-              <span>Elastic MCP</span>
+              <span>Elastic MCP · ES|QL</span>
               <span>Diagnosis</span>
               <span>Jira + memory</span>
             </div>
@@ -232,11 +232,11 @@ export default function App() {
           ) : (
             <section className="empty-state panel-glass">
               <span className="empty-icon" aria-hidden="true">⌁</span>
-              <h2>Run the demo and let the agent prove the workflow.</h2>
+              <h2>Run an investigation to see the agent in action.</h2>
               <p>
-                The strongest judge story is the Mumbai UPI scenario: BA context enters
-                once, then the agent produces evidence, root cause, recommended actions,
-                and a Jira ticket.
+                Try the Mumbai UPI scenario: enter the report once, and the agent
+                gathers evidence via Elastic MCP, pinpoints the root cause, recommends
+                actions, and files a Jira ticket.
               </p>
             </section>
           )}
