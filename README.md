@@ -150,6 +150,7 @@ npm run dev              # Starts frontend on http://localhost:5173
 ```
 
 Open http://localhost:5173 and run your first investigation.
+Demo video : https://www.youtube.com/watch?v=l6zAGGMAXO8
 
 ## Environment Variables
 
