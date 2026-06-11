@@ -66,7 +66,7 @@ export default function App() {
     setRunMeta({ query, baContext, startedAt: new Date().toISOString() });
 
     try {
-      const response = await fetch('/api/investigate', {
+      const response = await fetch('/api/investigate?stream=1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

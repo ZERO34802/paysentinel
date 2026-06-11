@@ -64,7 +64,7 @@ app.post('/api/investigate', requireApiKey, async (req, res) => {
         : null,
   };
 
-  const wantsStream = (req.headers.accept || '').includes('text/event-stream');
+  const wantsStream = req.query.stream === '1' || req.query.stream === 'true';
 
   if (!wantsStream) {
     try {
