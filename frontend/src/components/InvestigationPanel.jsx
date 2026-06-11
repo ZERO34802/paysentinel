@@ -10,13 +10,53 @@ const EMPTY_CONTEXT = {
   additional_notes: '',
 };
 
+const SCENARIOS = [
+  {
+    label: 'Mumbai UPI outage',
+    query: 'Customers are reporting UPI payment failures at checkout',
+    context: {
+      started_at: 'around 3:30pm, after the afternoon deployment',
+      affected_region: 'Mumbai',
+      affected_payment_method: 'UPI',
+      additional_notes: 'Only mobile app users appear affected; web checkout looks normal.',
+    },
+  },
+  {
+    label: 'Card auth spike',
+    query: 'Card payments are timing out during authorization',
+    context: {
+      started_at: 'in the last hour',
+      affected_region: 'Delhi',
+      affected_payment_method: 'card',
+      additional_notes: 'Support is seeing retries and high latency before gateway auth fails.',
+    },
+  },
+  {
+    label: 'Wallet regression',
+    query: 'Wallet payments are failing after the latest hotfix',
+    context: {
+      started_at: 'after the hotfix rollout',
+      affected_region: 'All Regions',
+      affected_payment_method: 'wallet',
+      additional_notes: 'Premium users reported failures first; need to know if this is regional or global.',
+    },
+  },
+];
+
 export default function InvestigationPanel({ onInvestigate, loading }) {
-  const [query, setQuery] = useState('payments are failing, investigate');
-  const [showContext, setShowContext] = useState(false);
-  const [baContext, setBaContext] = useState(EMPTY_CONTEXT);
+  const [query, setQuery] = useState(SCENARIOS[0].query);
+  const [showContext, setShowContext] = useState(true);
+  const [baContext, setBaContext] = useState(SCENARIOS[0].context);
 
   const updateContext = (field, value) => {
     setBaContext((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const fillScenario = (scenario) => {
+    if (loading) return;
+    setQuery(scenario.query);
+    setBaContext(scenario.context);
+    setShowContext(true);
   };
 
   const handleSubmit = (e) => {
@@ -38,21 +78,41 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
   };
 
   return (
-    <section className="panel investigation-panel">
-      <h2>Describe the issue</h2>
-      <p className="panel-subtitle">
-        PaySentinel will search transaction logs, analyze anomalies, diagnose root cause,
-        and file a Jira ticket automatically.
-      </p>
+    <section className="investigation-panel panel-glass">
+      <div className="panel-heading">
+        <span className="section-kicker">BA intake</span>
+        <h2>Describe the customer impact.</h2>
+        <p>
+          Use a plain-English report. PaySentinel turns it into a scoped investigation,
+          evidence search, diagnosis, and Jira-ready incident.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        <textarea
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="e.g. payments are failing, investigate"
-          rows={3}
-          disabled={loading}
-        />
+      <div className="scenario-row" aria-label="Demo scenarios">
+        {SCENARIOS.map((scenario) => (
+          <button
+            key={scenario.label}
+            type="button"
+            className="scenario-chip"
+            onClick={() => fillScenario(scenario)}
+            disabled={loading}
+          >
+            {scenario.label}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="investigation-form">
+        <label className="primary-query">
+          <span>Incident report</span>
+          <textarea
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g. customers are reporting UPI payment failures at checkout"
+            rows={4}
+            disabled={loading}
+          />
+        </label>
 
         <div className="context-section">
           <button
@@ -62,8 +122,8 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
             aria-expanded={showContext}
             disabled={loading}
           >
-            <span className="context-toggle-icon">{showContext ? '▾' : '▸'}</span>
-            Add context (optional)
+            <span className="context-toggle-icon">{showContext ? '−' : '+'}</span>
+            Analyst context
           </button>
 
           {showContext && (
@@ -74,7 +134,7 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
                   type="text"
                   value={baContext.started_at}
                   onChange={(e) => updateContext('started_at', e.target.value)}
-                  placeholder='e.g. "around 2pm", "after the 3:30pm deployment"'
+                  placeholder='e.g. "after the 3:30pm deployment"'
                   disabled={loading}
                 />
               </label>
@@ -95,7 +155,7 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
               </label>
 
               <label className="context-field">
-                <span>Affected payment method</span>
+                <span>Payment method</span>
                 <select
                   value={baContext.affected_payment_method || 'All Methods'}
                   onChange={(e) => updateContext('affected_payment_method', e.target.value)}
@@ -109,13 +169,13 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
                 </select>
               </label>
 
-              <label className="context-field">
+              <label className="context-field context-field-wide">
                 <span>Additional notes</span>
                 <textarea
                   value={baContext.additional_notes}
                   onChange={(e) => updateContext('additional_notes', e.target.value)}
-                  placeholder='e.g. "only premium users affected", "started after hotfix deployment"'
-                  rows={2}
+                  placeholder='e.g. "mobile app only, web users fine"'
+                  rows={3}
                   disabled={loading}
                 />
               </label>
@@ -123,50 +183,104 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
           )}
         </div>
 
-        <button type="submit" disabled={loading || !query.trim()}>
-          {loading ? (
-            <>
-              <span className="spinner" aria-hidden="true" />
-              Investigating…
-            </>
-          ) : (
-            'Investigate'
-          )}
-        </button>
+        <div className="submit-row">
+          <button type="submit" className="investigate-button" disabled={loading || !query.trim()}>
+            {loading ? (
+              <>
+                <span className="spinner" aria-hidden="true" />
+                Agent investigating…
+              </>
+            ) : (
+              <>
+                Launch investigation
+                <span aria-hidden="true">→</span>
+              </>
+            )}
+          </button>
+          <span className="submit-caption">Streams live progress from the backend investigation.</span>
+        </div>
       </form>
 
       <style>{`
         .investigation-panel {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          padding: 1.5rem;
+          padding: 1.25rem;
         }
 
-        .investigation-panel h2 {
-          margin: 0 0 0.35rem;
-          font-size: 1.1rem;
-          font-weight: 600;
+        .panel-heading h2 {
+          margin: 0.45rem 0 0.55rem;
+          color: var(--text-strong);
+          font-size: clamp(1.55rem, 3vw, 2.25rem);
+          line-height: 1;
+          letter-spacing: -0.055em;
         }
 
-        .panel-subtitle {
-          margin: 0 0 1.25rem;
+        .panel-heading p {
+          margin: 0;
           color: var(--text-muted);
-          font-size: 0.875rem;
+          line-height: 1.65;
+        }
+
+        .scenario-row {
+          margin: 1.1rem 0;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.55rem;
+        }
+
+        .scenario-chip {
+          border: 1px solid rgba(45, 212, 191, 0.2);
+          border-radius: 999px;
+          background: rgba(45, 212, 191, 0.08);
+          color: var(--text-soft);
+          padding: 0.55rem 0.7rem;
+          font-size: 0.78rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+        }
+
+        .scenario-chip:hover:not(:disabled) {
+          transform: translateY(-1px);
+          border-color: rgba(45, 212, 191, 0.55);
+          background: rgba(45, 212, 191, 0.14);
+        }
+
+        .scenario-chip:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .investigation-form {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .primary-query,
+        .context-field {
+          display: grid;
+          gap: 0.45rem;
+        }
+
+        .primary-query > span,
+        .context-field span {
+          color: var(--text-soft);
+          font-size: 0.78rem;
+          font-weight: 800;
+          letter-spacing: 0.045em;
+          text-transform: uppercase;
         }
 
         .investigation-panel textarea,
         .investigation-panel input,
         .investigation-panel select {
           width: 100%;
-          padding: 0.85rem 1rem;
-          background: var(--bg);
+          padding: 0.95rem 1rem;
+          background: rgba(2, 6, 23, 0.62);
           border: 1px solid var(--border);
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           color: var(--text);
-          font-size: 0.95rem;
           outline: none;
-          transition: border-color 0.15s;
+          transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
         }
 
         .investigation-panel textarea {
@@ -176,100 +290,120 @@ export default function InvestigationPanel({ onInvestigate, loading }) {
         .investigation-panel textarea:focus,
         .investigation-panel input:focus,
         .investigation-panel select:focus {
-          border-color: var(--accent);
+          border-color: rgba(45, 212, 191, 0.65);
+          box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.09);
+          background: rgba(2, 6, 23, 0.82);
         }
 
         .investigation-panel textarea:disabled,
         .investigation-panel input:disabled,
         .investigation-panel select:disabled {
-          opacity: 0.6;
+          opacity: 0.62;
         }
 
         .context-section {
-          margin-top: 1rem;
+          border: 1px solid var(--border-soft);
+          border-radius: var(--radius-lg);
+          padding: 0.85rem;
+          background: rgba(255, 255, 255, 0.035);
         }
 
         .context-toggle {
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
+          gap: 0.5rem;
+          width: 100%;
           padding: 0;
           background: none;
           border: none;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-          font-weight: 500;
+          color: var(--text-soft);
+          font-size: 0.85rem;
+          font-weight: 900;
           cursor: pointer;
-          transition: color 0.15s;
-        }
-
-        .context-toggle:hover:not(:disabled) {
-          color: var(--text);
-        }
-
-        .context-toggle:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
         }
 
         .context-toggle-icon {
-          font-size: 0.75rem;
+          width: 1.4rem;
+          height: 1.4rem;
+          display: grid;
+          place-items: center;
+          border-radius: 999px;
+          background: var(--accent-dim);
+          color: var(--accent);
         }
 
         .context-fields {
-          margin-top: 0.85rem;
+          margin-top: 0.9rem;
           display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 0.85rem;
         }
 
-        .context-field {
+        .context-field-wide {
+          grid-column: 1 / -1;
+        }
+
+        .submit-row {
           display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.8rem;
         }
 
-        .context-field span {
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: var(--text-muted);
-        }
-
-        .investigation-panel form > button[type="submit"] {
-          margin-top: 1rem;
+        .investigate-button {
+          min-height: 3.25rem;
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.7rem 1.5rem;
-          background: var(--accent);
-          color: #fff;
+          justify-content: center;
+          gap: 0.65rem;
+          padding: 0.85rem 1.25rem;
+          background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+          color: #03121f;
           border: none;
-          border-radius: 8px;
+          border-radius: 999px;
           font-size: 0.95rem;
-          font-weight: 600;
+          font-weight: 950;
           cursor: pointer;
-          transition: background 0.15s, opacity 0.15s;
+          box-shadow: 0 18px 44px rgba(45, 212, 191, 0.22);
+          transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
         }
 
-        .investigation-panel form > button[type="submit"]:hover:not(:disabled) {
-          background: #2d8ae6;
+        .investigate-button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 24px 60px rgba(45, 212, 191, 0.3);
         }
 
-        .investigation-panel form > button[type="submit"]:disabled {
+        .investigate-button:disabled {
           opacity: 0.7;
           cursor: not-allowed;
         }
 
+        .submit-caption {
+          color: var(--text-muted);
+          font-size: 0.82rem;
+        }
+
         .spinner {
-          width: 14px;
-          height: 14px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #fff;
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(3, 18, 31, 0.25);
+          border-top-color: #03121f;
           border-radius: 50%;
-          animation: spin 0.7s linear infinite;
+          animation: spin 0.75s linear infinite;
         }
 
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 720px) {
+          .context-fields {
+            grid-template-columns: 1fr;
+          }
+
+          .investigate-button {
+            width: 100%;
+          }
         }
       `}</style>
     </section>
