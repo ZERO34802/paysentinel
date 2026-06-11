@@ -24,7 +24,30 @@ function getGeminiModel() {
   }
   const genAI = new GoogleGenerativeAI(apiKey);
   const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  return genAI.getGenerativeModel({ model: modelName });
+  return genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      maxOutputTokens: 2048,
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  });
+}
+
+async function generateContentWithRetry(model, prompt, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (err) {
+      lastErr = err;
+      if (err?.status === 503 || err?.status === 429) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 function parseJsonResponse(text) {
@@ -350,14 +373,14 @@ function parseDiagnosis(text) {
 async function generateInvestigationPlan(userQuery, baContext) {
   const model = getGeminiModel();
   const prompt = buildPlanningPrompt(userQuery, baContext);
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithRetry(model, prompt);
   return parseInvestigationPlan(result.response.text());
 }
 
 async function generateDiagnosis(userQuery, failedData, analysis, baContext, plan) {
   const model = getGeminiModel();
   const prompt = buildDiagnosisPrompt(userQuery, baContext, plan, failedData, analysis);
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithRetry(model, prompt);
   return parseDiagnosis(result.response.text());
 }
 
