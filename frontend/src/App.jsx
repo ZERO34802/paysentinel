@@ -70,6 +70,7 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
           'x-api-key': 'paysentinel-agent-key-2026',
         },
         body: JSON.stringify({ query, ...baContext }),

@@ -64,6 +64,24 @@ app.post('/api/investigate', requireApiKey, async (req, res) => {
         : null,
   };
 
+  const wantsStream = (req.headers.accept || '').includes('text/event-stream');
+
+  if (!wantsStream) {
+    try {
+      const results = await runInvestigation(query.trim(), baContext);
+      return res.json({
+        query: query.trim(),
+        baContext,
+        diagnosis: results.diagnosis,
+        jira: results.jira,
+        incident: results.incident,
+        steps: results.steps,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
